@@ -2,7 +2,7 @@
 Projeto da disciplina de Objetos de Aprendizagem
 
 ## Público-Alvo
-Este objeto de aprendizagem é destinado a estudantes jovens (ensino médio e início do ensino superior) que estão iniciando seus estudos em banco de dados e linguagem SQL.
+Este objeto de aprendizagem é destinado a estudantes jovens (ensino médio e início do ensino superior)
 
 ## Mapa Conceitual
 Acesse o mapa conceitual do projeto para visualizar a estrutura e os conceitos envolvidos: [Mapa Conceitual](https://cmapscloud.ihmc.us/viewer/cmap/22NYLDRG0-2DKBHS1-MQPG10)
