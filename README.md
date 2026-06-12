@@ -16,3 +16,7 @@ Acesse o mapa conceitual do projeto para visualizar a estrutura e os conceitos e
 | 3 | Analisar dados para identificar padrões e inconsistências | **Analisar** | Comparação de dados entre tabelas |
 | 4 | Avaliar hipóteses com base em evidências | **Avaliar** | Escolha do suspeito com justificativa |
 | 5 | Criar consultas e soluções para resolver o caso | **Criar** | Construção de consultas completas |
+
+
+## Modelo Instrucional
+![Modelo instrucional](ModeloInstrucional.png)
