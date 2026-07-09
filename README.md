@@ -37,7 +37,7 @@ O Modelo Instrucional do Objeto de Aprendizagem pode ser visualizado [aqui](http
 ## Estrutura do Repositório
 
 ```
-detetive-sql/
+projeto/
 ├── frontend/   # Next.js + TypeScript + Tailwind CSS
 └── backend/    # Express + TypeScript + sql.js (SQLite)
 ```
