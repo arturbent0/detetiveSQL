@@ -14,6 +14,9 @@ interface FasePageProps {
   proximaRota: string;
 }
 
+function sqlRascunhoKey(faseId: number) { return `sql_rascunho_fase_${faseId}`; }
+function sqlCorretoKey(faseId: number)  { return `sql_correto_fase_${faseId}`; }
+
 export default function FasePage({ faseId, proximaRota }: FasePageProps) {
   const router = useRouter();
   const [fase, setFase] = useState<FaseData | null>(null);
@@ -21,11 +24,24 @@ export default function FasePage({ faseId, proximaRota }: FasePageProps) {
   const [resultado, setResultado] = useState<QueryResponse | null>(null);
   const [carregando, setCarregando] = useState(false);
   const [extensions, setExtensions] = useState<unknown[]>([]);
+  const [sqlFaseAnterior, setSqlFaseAnterior] = useState<string | null>(null);
 
   useEffect(() => {
     setFase(null);
     setResultado(null);
-    setSql('SELECT ');
+
+    // Restore saved SQL: prefer the confirmed-correct version, then the draft
+    const correto  = localStorage.getItem(sqlCorretoKey(faseId));
+    const rascunho = localStorage.getItem(sqlRascunhoKey(faseId));
+    setSql(correto ?? rascunho ?? 'SELECT ');
+
+    // Load previous phase's correct SQL for the reference box
+    if (faseId >= 2) {
+      setSqlFaseAnterior(localStorage.getItem(sqlCorretoKey(faseId - 1)));
+    } else {
+      setSqlFaseAnterior(null);
+    }
+
     getFase(faseId).then(setFase);
 
     Promise.all([
@@ -36,12 +52,22 @@ export default function FasePage({ faseId, proximaRota }: FasePageProps) {
     });
   }, [faseId]);
 
+  // Save draft to localStorage whenever the SQL changes
+  const handleSqlChange = useCallback((value: string) => {
+    setSql(value);
+    localStorage.setItem(sqlRascunhoKey(faseId), value);
+  }, [faseId]);
+
   const executar = useCallback(async () => {
     const sessaoId = localStorage.getItem('sessao_id');
     if (!sessaoId || !sql.trim()) return;
     setCarregando(true);
     const res = await executarQuery(sql, faseId, sessaoId);
     setResultado(res);
+    // Persist the correct SQL so future phases can show it as reference
+    if (res.correta) {
+      localStorage.setItem(sqlCorretoKey(faseId), sql);
+    }
     setCarregando(false);
   }, [sql, faseId]);
 
@@ -57,6 +83,16 @@ export default function FasePage({ faseId, proximaRota }: FasePageProps) {
     <main className="min-h-screen px-4 py-6 max-w-[1700px] mx-auto">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
+        {/* Back button */}
+        <button
+          onClick={() => router.back()}
+          title="Voltar à página anterior"
+          className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-all hover:scale-105"
+          style={{ background: 'var(--surface2)', color: 'var(--muted)', border: '1px solid var(--border)' }}
+        >
+          ← Voltar
+        </button>
+
         <span className="text-2xl">🔍</span>
         <div>
           <p className="text-xs font-semibold" style={{ color: 'var(--muted)' }}>FASE {faseId} DE 4</p>
@@ -145,7 +181,7 @@ export default function FasePage({ faseId, proximaRota }: FasePageProps) {
                 value={sql}
                 height="220px"
                 extensions={extensions as never[]}
-                onChange={(value) => setSql(value)}
+                onChange={handleSqlChange}
                 basicSetup={{ lineNumbers: true, foldGutter: false }}
               />
             )}
@@ -162,13 +198,26 @@ export default function FasePage({ faseId, proximaRota }: FasePageProps) {
 
           {resultado && (
             <div className="flex flex-col gap-3">
-              {!resultado.sucesso && resultado.erro_estrutural && (
-                <div className="rounded-xl p-4 border" style={{ background: '#2d1b1b', borderColor: 'var(--error)' }}>
-                  <p className="text-sm font-semibold" style={{ color: 'var(--error)' }}>❌ {resultado.erro_estrutural}</p>
-                  <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>Veja o formato da query na coluna do meio para saber o que está faltando.</p>
+
+              {/* ── Spelling / keyword typo ── */}
+              {!resultado.sucesso && resultado.erro_ortografia && (
+                <div className="rounded-xl p-4 border" style={{ background: '#2d2000', borderColor: '#f59e0b' }}>
+                  <p className="text-sm font-semibold mb-1" style={{ color: '#f59e0b' }}>⚠️ Erro de digitação</p>
+                  <p className="text-sm" style={{ color: 'var(--text)' }}>{resultado.erro_ortografia}</p>
+                  <p className="text-xs mt-2" style={{ color: 'var(--muted)' }}>Corrija a ortografia do comando e tente novamente. Esta tentativa não foi contabilizada.</p>
                 </div>
               )}
 
+              {/* ── Structural error (missing clause) ── */}
+              {!resultado.sucesso && resultado.erro_estrutural && (
+                <div className="rounded-xl p-4 border" style={{ background: '#2d1b1b', borderColor: 'var(--error)' }}>
+                  <p className="text-sm font-semibold mb-1" style={{ color: 'var(--error)' }}>❌ Cláusula faltando</p>
+                  <p className="text-sm" style={{ color: 'var(--text)' }}>{resultado.erro_estrutural}</p>
+                  <p className="text-xs mt-2" style={{ color: 'var(--muted)' }}>Veja o formato da query na coluna do meio. Esta tentativa não foi contabilizada.</p>
+                </div>
+              )}
+
+              {/* ── Runtime error (wrong column/table/syntax) ── */}
               {!resultado.sucesso && resultado.erro && (
                 <div className="rounded-xl p-4 border" style={{ background: '#2d1b1b', borderColor: 'var(--error)' }}>
                   <p className="text-sm font-semibold mb-1" style={{ color: 'var(--error)' }}>❌ Erro na consulta</p>
@@ -176,6 +225,7 @@ export default function FasePage({ faseId, proximaRota }: FasePageProps) {
                 </div>
               )}
 
+              {/* ── Success ── */}
               {resultado.sucesso && resultado.correta && (
                 <div className="rounded-xl p-4 border" style={{ background: '#1a2d1a', borderColor: 'var(--success)' }}>
                   <p className="text-sm font-semibold mb-1" style={{ color: 'var(--success)' }}>✅ Consulta correta!</p>
@@ -190,26 +240,44 @@ export default function FasePage({ faseId, proximaRota }: FasePageProps) {
                 </div>
               )}
 
-              {resultado.sucesso && !resultado.correta && resultado.dica && (
-                <div className="rounded-xl p-4 border" style={{ background: '#2d2a1a', borderColor: 'var(--accent)' }}>
-                  <p className="text-sm font-semibold mb-1" style={{ color: 'var(--accent)' }}>💡 Dica</p>
-                  <p className="text-sm" style={{ color: 'var(--text)' }}>{resultado.dica}</p>
-                </div>
+              {/* ── Wrong result: analysis + hint or answer ── */}
+              {resultado.sucesso && !resultado.correta && (
+                <>
+                  {/* Specific analysis of what's wrong */}
+                  {resultado.analise && (
+                    <div className="rounded-xl p-4 border" style={{ background: '#2d2000', borderColor: '#f59e0b' }}>
+                      <p className="text-sm font-semibold mb-1" style={{ color: '#f59e0b' }}>🔍 O que está errado</p>
+                      <p className="text-sm" style={{ color: 'var(--text)' }}>{resultado.analise}</p>
+                    </div>
+                  )}
+
+                  {/* Progressive hint */}
+                  {resultado.dica && (
+                    <div className="rounded-xl p-4 border" style={{ background: '#2d2a1a', borderColor: 'var(--accent)' }}>
+                      <p className="text-sm font-semibold mb-1" style={{ color: 'var(--accent)' }}>
+                        💡 Dica {resultado.num_tentativa ?? 1}
+                      </p>
+                      <p className="text-sm" style={{ color: 'var(--text)' }}>{resultado.dica}</p>
+                    </div>
+                  )}
+
+                  {/* Full answer (shown after hints exhausted) */}
+                  {resultado.resposta_comentada && (
+                    <div className="rounded-xl p-4 border" style={{ background: '#1a1d2d', borderColor: 'var(--accent2)' }}>
+                      <p className="text-sm font-semibold mb-2" style={{ color: 'var(--accent2)' }}>📖 Resposta comentada</p>
+                      <pre className="text-xs overflow-x-auto rounded-lg p-3" style={{ background: 'var(--surface2)', color: '#93c5fd', fontFamily: 'monospace' }}>
+                        {resultado.resposta_comentada}
+                      </pre>
+                    </div>
+                  )}
+                </>
               )}
 
-              {resultado.sucesso && !resultado.correta && resultado.resposta_comentada && (
-                <div className="rounded-xl p-4 border" style={{ background: '#1a1d2d', borderColor: 'var(--accent2)' }}>
-                  <p className="text-sm font-semibold mb-2" style={{ color: 'var(--accent2)' }}>📖 Resposta comentada</p>
-                  <pre className="text-xs overflow-x-auto rounded-lg p-3" style={{ background: 'var(--surface2)', color: '#93c5fd', fontFamily: 'monospace' }}>
-                    {resultado.resposta_comentada}
-                  </pre>
-                </div>
-              )}
-
+              {/* ── Result table ── */}
               {resultado.sucesso && resultado.resultado && resultado.resultado.length > 0 && (
                 <div className="rounded-xl overflow-hidden border" style={{ borderColor: 'var(--border)' }}>
                   <p className="px-4 py-2 text-xs font-semibold" style={{ background: 'var(--surface2)', color: 'var(--muted)' }}>
-                    RESULTADO, {resultado.resultado.length} linha(s)
+                    RESULTADO — {resultado.resultado.length} linha(s)
                   </p>
                   <div className="overflow-x-auto">
                     <table className="w-full text-xs">
@@ -235,6 +303,21 @@ export default function FasePage({ faseId, proximaRota }: FasePageProps) {
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* ── Reference: previous phase code ── */}
+          {faseId >= 2 && sqlFaseAnterior && (
+            <div className="rounded-xl p-4 border" style={{ background: 'var(--surface2)', borderColor: 'var(--border)' }}>
+              <p className="text-xs font-semibold mb-2" style={{ color: 'var(--muted)' }}>
+                📋 CÓDIGO QUE VOCÊ USOU NA FASE {faseId - 1}
+              </p>
+              <pre
+                className="text-xs overflow-x-auto rounded-lg p-3"
+                style={{ background: 'var(--surface)', color: '#93c5fd', fontFamily: 'monospace' }}
+              >
+                {sqlFaseAnterior}
+              </pre>
             </div>
           )}
         </div>

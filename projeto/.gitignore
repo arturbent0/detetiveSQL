@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Next.js build output
+.next/
+out/
+
+# TypeScript build output
+dist/
+
+# Environment variables
+.env
+.env.local
+.env*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Progress database (runtime state, not source)
+backend/progresso.db
+
+# Lock files (optional — remove these lines if you want to track them)
+package-lock.json

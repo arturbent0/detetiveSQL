@@ -14,7 +14,7 @@ export interface Fase {
   schema: Record<string, { coluna: string; tipo: string }[]>;
   formato_query: string;
   clausulas_esperadas: ClauseCheck[];
-  dica: string;
+  dicas: string[];
   resposta_comentada: string;
   resumo_ferramenta: { titulo: string; pontos: string[] };
   recap_fase_anterior?: string;
@@ -45,9 +45,13 @@ export const fases: Fase[] = [
     clausulas_esperadas: [
       { clausula: 'SELECT', obrigatoria: true, regex: /^SELECT\s/i, mensagem_faltando: 'Está faltando o SELECT!' },
       { clausula: 'FROM', obrigatoria: true, regex: /\sFROM\s/i, mensagem_faltando: 'Está faltando o FROM!' },
-      { clausula: 'WHERE', obrigatoria: true, regex: /\sWHERE\s/i, mensagem_faltando: 'Está faltando um WHERE!' },
+      { clausula: 'WHERE', obrigatoria: true, regex: /\sWHERE\s/i, mensagem_faltando: 'Está faltando um WHERE para filtrar os dados!' },
     ],
-    dica: "Use SELECT para escolher convidado_id, hora_chegada e hora_saida. Use WHERE para filtrar local = 'Mansão Belmont' e data = '2024-03-15'.",
+    dicas: [
+      "Verifique as colunas selecionadas: você precisa de convidado_id, hora_chegada e hora_saida. O WHERE precisa de duas condições combinadas com AND — filtre o local E a data ao mesmo tempo.",
+      "As condições do WHERE devem ser exatamente: local = 'Mansão Belmont' AND data = '2024-03-15'. Os valores de texto precisam de aspas simples e a grafia precisa ser idêntica à do banco.",
+      "Sua query está quase lá: SELECT convidado_id, hora_chegada, hora_saida FROM presencas WHERE local = 'Mansão Belmont' AND data = '...' — substitua o '...' pela data correta no formato AAAA-MM-DD.",
+    ],
     resposta_comentada: `SELECT convidado_id, hora_chegada, hora_saida
 FROM presencas
 WHERE local = 'Mansão Belmont'
@@ -100,12 +104,16 @@ WHERE local = 'Mansão Belmont'
     clausulas_esperadas: [
       { clausula: 'SELECT', obrigatoria: true, regex: /^SELECT\s/i, mensagem_faltando: 'Está faltando o SELECT!' },
       { clausula: 'FROM', obrigatoria: true, regex: /\sFROM\s/i, mensagem_faltando: 'Está faltando o FROM!' },
-      { clausula: 'INNER JOIN', obrigatoria: true, regex: /\sINNER\s+JOIN\s/i, mensagem_faltando: 'Está faltando um INNER JOIN!' },
-      { clausula: 'ON', obrigatoria: true, regex: /\sON\s/i, mensagem_faltando: 'Está faltando a condição ON do JOIN!' },
+      { clausula: 'INNER JOIN', obrigatoria: true, regex: /\sINNER\s+JOIN\s/i, mensagem_faltando: 'Está faltando o INNER JOIN para unir as tabelas!' },
+      { clausula: 'ON', obrigatoria: true, regex: /\sON\s/i, mensagem_faltando: 'Está faltando a condição ON do JOIN (ex: ON c.id = v.convidado_id)!' },
       { clausula: 'WHERE', obrigatoria: true, regex: /\sWHERE\s/i, mensagem_faltando: 'Está faltando o WHERE para filtrar a sala_id da Biblioteca!' },
       { clausula: 'AS', obrigatoria: false, regex: /\sAS\s/i, mensagem_faltando: 'Está faltando um AS para renomear a coluna da ocasião!' },
     ],
-    dica: 'Una convidados com visitas_sala usando INNER JOIN ... ON c.id = v.convidado_id. Filtre com WHERE v.sala_id = 1 (Biblioteca). Renomeie v.ocasiao com AS visita.',
+    dicas: [
+      "Você precisa de INNER JOIN para unir convidados e visitas_sala. Dê apelidos às tabelas (c e v). Conecte com ON c.id = v.convidado_id e filtre com WHERE v.sala_id = 1 para a Biblioteca.",
+      "Certifique-se que o SELECT traz c.nome e v.ocasiao AS visita. O JOIN deve ser: FROM convidados c INNER JOIN visitas_sala v ON c.id = v.convidado_id. Verifique se o WHERE usa v.sala_id = 1.",
+      "Estrutura completa: SELECT c.nome, v.ocasiao AS visita FROM convidados c INNER JOIN visitas_sala v ON c.id = v.convidado_id WHERE v.sala_id = [qual é o id da Biblioteca?].",
+    ],
     resposta_comentada: `SELECT c.nome, v.ocasiao AS visita
 FROM convidados c
 INNER JOIN visitas_sala v ON c.id = v.convidado_id
@@ -160,14 +168,18 @@ WHERE v.sala_id = 1`,
     clausulas_esperadas: [
       { clausula: 'SELECT', obrigatoria: true, regex: /^SELECT\s/i, mensagem_faltando: 'Está faltando o SELECT!' },
       { clausula: 'FROM', obrigatoria: true, regex: /\sFROM\s/i, mensagem_faltando: 'Está faltando o FROM!' },
-      { clausula: 'INNER JOIN', obrigatoria: true, regex: /\sINNER\s+JOIN\s/i, mensagem_faltando: 'Está faltando um INNER JOIN!' },
+      { clausula: 'INNER JOIN', obrigatoria: true, regex: /\sINNER\s+JOIN\s/i, mensagem_faltando: 'Está faltando o INNER JOIN para unir as tabelas!' },
       { clausula: 'WHERE', obrigatoria: true, regex: /\sWHERE\s/i, mensagem_faltando: 'Está faltando o WHERE para filtrar a sala_id da Biblioteca!' },
-      { clausula: 'GROUP BY', obrigatoria: true, regex: /\sGROUP\s+BY\s/i, mensagem_faltando: 'Está faltando o GROUP BY!' },
-      { clausula: 'HAVING', obrigatoria: true, regex: /\sHAVING\s/i, mensagem_faltando: 'Está faltando o HAVING!' },
-      { clausula: 'ORDER BY', obrigatoria: true, regex: /\sORDER\s+BY\s/i, mensagem_faltando: 'Está faltando o ORDER BY!' },
+      { clausula: 'GROUP BY', obrigatoria: true, regex: /\sGROUP\s+BY\s/i, mensagem_faltando: 'Está faltando o GROUP BY para agrupar por convidado!' },
+      { clausula: 'HAVING', obrigatoria: true, regex: /\sHAVING\s/i, mensagem_faltando: 'Está faltando o HAVING para filtrar os grupos pelo total de minutos!' },
+      { clausula: 'ORDER BY', obrigatoria: true, regex: /\sORDER\s+BY\s/i, mensagem_faltando: 'Está faltando o ORDER BY para ordenar do maior para o menor!' },
       { clausula: 'AS', obrigatoria: false, regex: /\sAS\s/i, mensagem_faltando: 'Está faltando AS para renomear o total de minutos!' },
     ],
-    dica: 'Una convidados com registros_tempo, filtre com WHERE sala_id = 1, use GROUP BY para agrupar por convidado, SUM com AS total_minutos para somar, HAVING para filtrar quem passou de 10 minutos, e ORDER BY total_minutos DESC para ordenar do maior para o menor.',
+    dicas: [
+      "Use SUM(r.minutos) AS total_minutos para somar o tempo de cada convidado. Agrupe com GROUP BY c.id, c.nome. Filtre primeiro com WHERE r.sala_id = 1 e depois filtre os grupos com HAVING SUM(r.minutos) > 10.",
+      "A ordem das cláusulas importa: WHERE (filtra linhas) → GROUP BY (agrupa) → HAVING (filtra grupos) → ORDER BY (ordena). Use ORDER BY total_minutos DESC para o maior primeiro. Certifique-se que o WHERE tem r.sala_id = 1.",
+      "Estrutura completa: SELECT c.nome, SUM(r.minutos) AS total_minutos FROM convidados c INNER JOIN registros_tempo r ON c.id = r.convidado_id WHERE r.sala_id = 1 GROUP BY c.id, c.nome HAVING SUM(r.minutos) > [qual é o limite?] ORDER BY total_minutos DESC.",
+    ],
     resposta_comentada: `SELECT c.nome, SUM(r.minutos) AS total_minutos
 FROM convidados c
 INNER JOIN registros_tempo r ON c.id = r.convidado_id
@@ -226,12 +238,16 @@ ORDER BY total_minutos DESC`,
     clausulas_esperadas: [
       { clausula: 'SELECT', obrigatoria: true, regex: /^SELECT\s/i, mensagem_faltando: 'Está faltando o SELECT!' },
       { clausula: 'FROM', obrigatoria: true, regex: /\sFROM\s/i, mensagem_faltando: 'Está faltando o FROM!' },
-      { clausula: 'INNER JOIN', obrigatoria: true, regex: /\sINNER\s+JOIN\s/i, mensagem_faltando: 'Está faltando um INNER JOIN!' },
+      { clausula: 'INNER JOIN', obrigatoria: true, regex: /\sINNER\s+JOIN\s/i, mensagem_faltando: 'Está faltando o INNER JOIN para cruzar as tabelas!' },
       { clausula: 'WHERE', obrigatoria: true, regex: /\sWHERE\s/i, mensagem_faltando: 'Está faltando o WHERE com a subconsulta!' },
-      { clausula: 'subconsulta', obrigatoria: true, regex: /\(\s*SELECT/i, mensagem_faltando: 'Está faltando a subconsulta dentro do WHERE!' },
+      { clausula: 'subconsulta', obrigatoria: true, regex: /\(\s*SELECT/i, mensagem_faltando: 'Está faltando a subconsulta (SELECT dentro do WHERE)!' },
       { clausula: 'AS', obrigatoria: false, regex: /\sAS\s/i, mensagem_faltando: 'Está faltando AS para renomear nome e chegada!' },
     ],
-    dica: "Una convidados com registros_tempo filtrando sala_id = 1. No WHERE, use c.id IN (SELECT convidado_id FROM presencas WHERE hora_chegada > '19:00').",
+    dicas: [
+      "A subconsulta dentro do WHERE identifica quem esteve na Biblioteca: WHERE c.id IN (SELECT convidado_id FROM registros_tempo WHERE sala_id = 1). Una convidados com presencas via INNER JOIN e adicione a condição de hora de chegada.",
+      "Use INNER JOIN presencas p ON c.id = p.convidado_id. O WHERE precisa de duas condições: a subconsulta IN (quem estava na biblioteca) E AND p.hora_chegada > '19:00' (quem chegou depois das 19h). Renomeie c.nome AS suspeito e p.hora_chegada AS chegada.",
+      "Estrutura completa: SELECT c.nome AS suspeito, p.hora_chegada AS chegada FROM convidados c INNER JOIN presencas p ON c.id = p.convidado_id WHERE c.id IN (SELECT convidado_id FROM registros_tempo WHERE sala_id = 1) AND p.hora_chegada > '...'.",
+    ],
     resposta_comentada: `SELECT c.nome AS suspeito, p.hora_chegada AS chegada
 FROM convidados c
 INNER JOIN presencas p ON c.id = p.convidado_id
@@ -250,9 +266,10 @@ AND p.hora_chegada > '19:00'`,
     },
     recap_fase_anterior: 'Na Fase 3, você descobriu que Roberto Lima e Marcos Oliveira foram os dois que passaram mais tempo perto da Biblioteca, mais de 10 minutos cada um.',
     validacao: (resultado) => {
-      if (resultado.length === 0) return false;
-      const suspeitos = resultado.map((r) => (r as { suspeito: string }).suspeito);
-      return suspeitos.includes('Marcos Oliveira') && resultado.length === 1;
+      if (resultado.length !== 1) return false;
+      const r = resultado[0] as Record<string, unknown>;
+      const nome = String(r.suspeito ?? r.nome ?? '');
+      return nome === 'Marcos Oliveira';
     },
   },
 ];

@@ -11,7 +11,7 @@ export interface FaseData {
   tabelas_disponiveis: string[];
   schema: Record<string, ColunasSchema[]>;
   formato_query: string;
-  dica: string;
+  dicas: string[];
   resposta_comentada: string;
   resumo_ferramenta: { titulo: string; pontos: string[] };
   recap_fase_anterior?: string;
@@ -21,6 +21,8 @@ export interface QueryResponse {
   sucesso: boolean;
   erro?: string;
   erro_estrutural?: string;
+  erro_ortografia?: string;
+  analise?: string;
   resultado?: Record<string, unknown>[];
   correta?: boolean;
   dica?: string;
