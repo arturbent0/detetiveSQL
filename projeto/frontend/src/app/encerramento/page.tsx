@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getProgresso } from '@/lib/api';
+import { limparRespostasSalvas } from '@/lib/storage';
 import type { Progresso } from '@/types';
 
 export default function Encerramento() {
@@ -15,6 +16,7 @@ export default function Encerramento() {
 
   function reiniciar() {
     localStorage.removeItem('sessao_id');
+    limparRespostasSalvas();
     router.push('/');
   }
 

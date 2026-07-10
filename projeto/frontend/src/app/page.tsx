@@ -1,12 +1,14 @@
 'use client';
 import { useRouter } from 'next/navigation';
 import { criarSessao } from '@/lib/api';
+import { limparRespostasSalvas } from '@/lib/storage';
 
 export default function Home() {
   const router = useRouter();
 
   async function iniciar() {
     const sessaoId = await criarSessao();
+    limparRespostasSalvas();
     localStorage.setItem('sessao_id', sessaoId);
     router.push('/abertura');
   }
